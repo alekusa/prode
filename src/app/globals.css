@@ -1,26 +1,95 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-argentina-blue: #75AADB;
+  --color-argentina-gold: #F4B333;
+  --color-navy-950: #0B1E33;
+  --color-navy-900: #102A45;
+  --color-navy-800: #163659;
+  
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+  
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 }
 
+:root {
+  --background: #0B1E33;
+  --foreground: #ffffff;
+  --card: #102A45;
+  --primary: #75AADB;
+  --secondary: #F4B333;
+}
+
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: 
+    linear-gradient(rgba(11, 30, 51, 0.85), rgba(11, 30, 51, 0.95)),
+    url('/images/stadium-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(16, 42, 69, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.betting-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.betting-card-hover:hover {
+  border-color: var(--color-argentina-blue);
+  box-shadow: 0 0 20px rgba(117, 170, 219, 0.15);
+  transform: translateY(-2px);
+}
+
+.bet-input {
+  @apply bg-navy-950 border border-white/10 rounded-md text-white font-bold text-center transition-all;
+}
+
+.bet-input:focus {
+  @apply border-argentina-blue ring-1 ring-argentina-blue outline-none shadow-[0_0_10px_rgba(117,170,219,0.3)];
+}
+
+.bet-input:disabled {
+  @apply opacity-50 cursor-not-allowed bg-transparent;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.status-badge {
+  @apply px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest;
+}
+
+/* Custom scrollbar for horizontal lists */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
