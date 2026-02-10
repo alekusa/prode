@@ -65,8 +65,33 @@ export default function PredictionsPage() {
         setMatches(fetchedMatches);
         setRounds(Array.from({ length: 16 }, (_, i) => i + 1));
 
-        // Find current round (first round that has scheduled matches)
-        const currentRound = fetchedMatches.find(m => m.status === 'scheduled')?.round || 1;
+        // Find current round: first round that has at least one match not yet finished
+        const now = new Date();
+        let currentRound = 1;
+
+        // Group matches by round
+        const matchesByRound: Record<number, Match[]> = {};
+        fetchedMatches.forEach(match => {
+            if (!matchesByRound[match.round]) {
+                matchesByRound[match.round] = [];
+            }
+            matchesByRound[match.round].push(match);
+        });
+
+        // Find first round with at least one upcoming match
+        for (let round = 1; round <= 16; round++) {
+            const roundMatches = matchesByRound[round] || [];
+            const hasUpcomingMatch = roundMatches.some(m => {
+                const matchDate = new Date(m.start_time);
+                return matchDate > now || m.status === 'scheduled' || m.status === 'live';
+            });
+
+            if (hasUpcomingMatch) {
+                currentRound = round;
+                break;
+            }
+        }
+
         setSelectedRound(currentRound);
 
         if (user && fetchedMatches.length > 0) {

@@ -38,10 +38,10 @@ export default function ProfilePage() {
     }, [profile]);
 
     useEffect(() => {
-        if (user) {
+        if (!authLoading && user) {
             fetchPredictions();
         }
-    }, [user]);
+    }, [user, authLoading]);
 
     const fetchPredictions = async () => {
         console.log("Fetching predictions for user:", user?.id);
@@ -72,11 +72,12 @@ export default function ProfilePage() {
                 console.error('Error fetching predictions details:', error);
                 setMessage({ type: 'error', text: 'No se pudieron cargar tus predicciones.' });
             } else {
-                console.log("Predictions fetched:", data?.length);
                 setPredictions((data as any) || []);
             }
         } catch (error: any) {
-            console.error('Unexpected error in fetchPredictions:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Unexpected error in fetchPredictions:', error);
+            }
         } finally {
             setLoadingPredictions(false);
         }
@@ -230,8 +231,8 @@ export default function ProfilePage() {
                                             {new Date(pred.matches.start_time).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })} • {new Date(pred.matches.start_time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}hs
                                         </span>
                                         <span className={`px-2 py-0.5 rounded-full font-black border ${pred.matches.status === 'finished'
-                                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                : 'bg-argentina-blue/10 text-argentina-blue border-argentina-blue/20'
+                                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                            : 'bg-argentina-blue/10 text-argentina-blue border-argentina-blue/20'
                                             }`}>
                                             {pred.matches.status === 'finished' ? 'Finalizado' : 'Pendiente'}
                                         </span>
@@ -266,8 +267,8 @@ export default function ProfilePage() {
                                                 Resultado: <span className="text-white font-black ml-1">{pred.matches.home_score} - {pred.matches.away_score}</span>
                                             </div>
                                             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md ${pred.points_awarded && pred.points_awarded > 0
-                                                    ? 'bg-argentina-gold/20 text-argentina-gold border border-argentina-gold/30'
-                                                    : 'bg-white/5 text-gray-600'
+                                                ? 'bg-argentina-gold/20 text-argentina-gold border border-argentina-gold/30'
+                                                : 'bg-white/5 text-gray-600'
                                                 }`}>
                                                 {pred.points_awarded && pred.points_awarded > 0 && <Trophy size={10} />}
                                                 <span className="font-black text-[10px]">+{pred.points_awarded || 0} PTS</span>

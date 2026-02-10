@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 
 export function Navbar() {
-    const { user, profile, signOut } = useAuth();
+    const { user, profile, signOut, loading } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
@@ -43,7 +43,7 @@ export function Navbar() {
                                 <Link href="/profile" className="text-gray-300 hover:text-white transition-colors">
                                     Mi Perfil
                                 </Link>
-                                {profile?.role === 'admin' && (
+                                {!loading && profile?.role === 'admin' && (
                                     <Link href="/admin/matches" className="px-3 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all font-bold text-xs uppercase tracking-widest">
                                         Admin
                                     </Link>

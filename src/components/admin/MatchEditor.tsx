@@ -34,6 +34,28 @@ export function MatchEditor({ existingMatch, onSaved, onCancel }: MatchEditorPro
         fetchTeams();
     }, []);
 
+    // Update form state when existingMatch changes
+    useEffect(() => {
+        if (existingMatch) {
+            setHomeTeamId(existingMatch.home_team_id || "");
+            setAwayTeamId(existingMatch.away_team_id || "");
+            setStartTime(existingMatch.start_time ? new Date(existingMatch.start_time).toISOString().slice(0, 16) : "");
+            setRound(existingMatch.round || 1);
+            setStatus(existingMatch.status || 'scheduled');
+            setHomeScore(existingMatch.home_score?.toString() || "");
+            setAwayScore(existingMatch.away_score?.toString() || "");
+        } else {
+            // Reset form for new match
+            setHomeTeamId("");
+            setAwayTeamId("");
+            setStartTime("");
+            setRound(1);
+            setStatus('scheduled');
+            setHomeScore("");
+            setAwayScore("");
+        }
+    }, [existingMatch]);
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -44,16 +66,47 @@ export function MatchEditor({ existingMatch, onSaved, onCancel }: MatchEditorPro
             start_time: new Date(startTime).toISOString(),
             round: round,
             status: status,
-            home_score: homeScore === "" ? null : parseInt(homeScore),
-            away_score: awayScore === "" ? null : parseInt(awayScore),
+            home_score: homeScore === "" ? null : Math.max(0, parseInt(homeScore)),
+            away_score: awayScore === "" ? null : Math.max(0, parseInt(awayScore)),
         };
 
         try {
+            let savedMatch;
             if (existingMatch) {
-                await supabase.from('matches').update(matchData).eq('id', existingMatch.id);
+                const { data } = await supabase.from('matches').update(matchData).eq('id', existingMatch.id).select().single();
+                savedMatch = data;
             } else {
-                await supabase.from('matches').insert(matchData);
+                const { data } = await supabase.from('matches').insert(matchData).select().single();
+                savedMatch = data;
             }
+
+            // Sync with Google Calendar
+            if (savedMatch) {
+                try {
+                    // Enrich match data with team names for calendar event
+                    const homeTeam = teams.find(t => t.id === homeTeamId);
+                    const awayTeam = teams.find(t => t.id === awayTeamId);
+
+                    if (homeTeam && awayTeam) {
+                        await fetch('/api/match/calendar-sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                match: {
+                                    id: savedMatch.id,
+                                    home_team: { name: homeTeam.name },
+                                    away_team: { name: awayTeam.name },
+                                    start_time: savedMatch.start_time
+                                }
+                            })
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error syncing calendar:", error);
+                    // Don't block UI if calendar sync fails
+                }
+            }
+
             onSaved();
         } catch (error) {
             console.error("Error saving match:", error);
@@ -142,6 +195,7 @@ export function MatchEditor({ existingMatch, onSaved, onCancel }: MatchEditorPro
                                 onChange={(e) => setHomeScore(e.target.value)}
                                 className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-argentina-blue"
                                 placeholder="-"
+                                min="0"
                             />
                         </div>
                         <div>
@@ -152,6 +206,7 @@ export function MatchEditor({ existingMatch, onSaved, onCancel }: MatchEditorPro
                                 onChange={(e) => setAwayScore(e.target.value)}
                                 className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-argentina-blue"
                                 placeholder="-"
+                                min="0"
                             />
                         </div>
                     </div>

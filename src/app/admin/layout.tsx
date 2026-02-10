@@ -72,6 +72,10 @@ export default function AdminLayout({
                             <Users size={20} />
                             Usuarios
                         </Link>
+                        <Link href="/admin/predictions" className="flex items-center gap-3 text-gray-400 hover:text-argentina-blue transition-colors px-4 py-2 rounded-lg hover:bg-white/5">
+                            <CheckSquare size={20} />
+                            Predicciones
+                        </Link>
                     </nav>
                 </div>
             </aside>

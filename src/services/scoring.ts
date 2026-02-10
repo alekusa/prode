@@ -46,43 +46,30 @@ export async function calculatePointsForMatch(matchId: string) {
 
         // Only update if changed (optional optimization, but good practice)
         updates.push({
-            id: pred.id,
+            ...pred,
             points_awarded: points
         });
     }
 
     // 4. Update predictions
     if (updates.length > 0) {
-        const { error: updateError } = await supabase
-            .from('predictions')
-            .upsert(updates);
+        // Use parallel updates with explicit filters to avoid "UPDATE requires a WHERE clause" errors
+        const updatePromises = updates.map(u =>
+            supabase
+                .from('predictions')
+                .update({ points_awarded: u.points_awarded })
+                .eq('id', u.id)
+        );
 
-        if (updateError) throw updateError;
-    }
-
-    // 5. Update User Profiles Total Points
-    // This is heavy. Ideally we use a trigger or a view. 
-    // For now, let's recalculate ALL points for the affected users to be safe and simple?
-    // Or just increment? Increment is risky if we re-run calculation.
-    // Better strategy: Recalculate total points for all users involved.
-
-    // Get unique user IDs
-    const userIds = [...new Set(predictions.map(p => p.user_id))];
-
-    for (const userId of userIds) {
-        const { data: userPreds } = await supabase
-            .from('predictions')
-            .select('points_awarded')
-            .eq('user_id', userId)
-            .not('points_awarded', 'is', null);
-
-        const totalPoints = userPreds?.reduce((sum, p) => sum + (p.points_awarded || 0), 0) || 0;
-
-        await supabase
-            .from('profiles')
-            .update({ points: totalPoints })
-            .eq('id', userId);
+        const results = await Promise.all(updatePromises);
+        const error = results.find(r => r.error)?.error;
+        if (error) throw error;
     }
 
     return { updatedCount: updates.length };
+}
+
+export async function refreshAllUserPoints() {
+    const { error } = await supabase.rpc('update_total_points');
+    if (error) throw error;
 }

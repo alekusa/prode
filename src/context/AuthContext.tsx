@@ -40,13 +40,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .single();
 
             if (error) {
-                console.error('Error fetching profile details:', error);
-                setProfile(null);
+                if (error.code === 'PGRST116') {
+                    // No profile found, might be a new user
+                    setProfile(null);
+                } else {
+                    console.error('Error fetching profile details:', error);
+                    setProfile(null);
+                }
             } else {
                 setProfile(data);
             }
-        } catch (error) {
-            console.error('Unexpected error fetching profile:', error);
+        } catch (error: any) {
+            // Silence AbortErrors as they are expected during navigation/re-renders
+            if (error.name !== 'AbortError') {
+                console.error('Unexpected error fetching profile:', error);
+            }
             setProfile(null);
         }
     };
@@ -61,19 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let mounted = true;
 
         const initializeAuth = async () => {
-            setLoading(true);
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (mounted) {
-                    setSession(session);
-                    const currentUser = session?.user ?? null;
-                    setUser(currentUser);
-                    if (currentUser) {
-                        await fetchProfile(currentUser.id);
-                    }
+                // Initial session check
+                const { data: { session: initialSession } } = await supabase.auth.getSession();
+
+                if (!mounted) return;
+
+                if (initialSession) {
+                    setSession(initialSession);
+                    setUser(initialSession.user);
+                    await fetchProfile(initialSession.user.id);
                 }
-            } catch (error) {
-                console.error('Auth initialization error:', error);
+            } catch (error: any) {
+                if (error.name !== 'AbortError') {
+                    console.error('Auth initialization error:', error);
+                }
             } finally {
                 if (mounted) setLoading(false);
             }
@@ -81,22 +91,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         initializeAuth();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state change:', event, !!session);
-            const currentUser = session?.user ?? null;
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+            if (!mounted) return;
 
-            if (mounted) {
-                setSession(session);
-                setUser(currentUser);
+            console.log('Auth state event:', event);
 
-                if (currentUser) {
-                    await fetchProfile(currentUser.id);
-                } else {
-                    setProfile(null);
+            const newUser = currentSession?.user ?? null;
+            setSession(currentSession);
+
+            // Only update user and fetch profile if the ID actually changed
+            // We use state functional update style if we need to see previous value, 
+            // but here we can just update states.
+            setUser(prevUser => {
+                if (newUser?.id !== prevUser?.id) {
+                    if (newUser) {
+                        fetchProfile(newUser.id);
+                    } else {
+                        setProfile(null);
+                    }
+                    return newUser;
                 }
+                return prevUser;
+            });
 
-                setLoading(false);
-            }
+            setLoading(false);
         });
 
         return () => {
@@ -114,7 +132,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             window.location.href = '/';
         } catch (error) {
             console.error('Error signing out:', error);
-            // Even if it fails, try to clear locally
             window.location.href = '/';
         }
     };

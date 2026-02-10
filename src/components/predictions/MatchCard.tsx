@@ -50,12 +50,11 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
 
         setLoading(true);
         setSaved(false);
-
         const predictionData = {
             user_id: user.id,
             match_id: match.id,
-            home_score: parseInt(homeScore),
-            away_score: parseInt(awayScore),
+            home_score: Math.max(0, parseInt(homeScore)),
+            away_score: Math.max(0, parseInt(awayScore)),
         };
 
         try {
@@ -168,6 +167,7 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
                                             onChange={(e) => setHomeScore(e.target.value)}
                                             disabled={loading || !user}
                                             placeholder="-"
+                                            min="0"
                                             className="w-14 h-14 md:w-16 md:h-16 text-center text-2xl font-black bg-navy-950 border-2 border-white/5 rounded-2xl focus:border-argentina-blue focus:ring-0 transition-all outline-none placeholder:text-navy-800 text-white"
                                         />
                                     </div>
@@ -179,6 +179,7 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
                                             onChange={(e) => setAwayScore(e.target.value)}
                                             disabled={loading || !user}
                                             placeholder="-"
+                                            min="0"
                                             className="w-14 h-14 md:w-16 md:h-16 text-center text-2xl font-black bg-navy-950 border-2 border-white/5 rounded-2xl focus:border-argentina-blue focus:ring-0 transition-all outline-none placeholder:text-navy-800 text-white"
                                         />
                                     </div>

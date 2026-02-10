@@ -23,6 +23,14 @@ create policy "Users can insert their own profile." on profiles
 create policy "Users can update own profile." on profiles
   for update using (auth.uid() = id);
 
+create policy "Admins can update all profiles." on profiles
+  for update using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
 -- Create teams table
 create table teams (
   id uuid default gen_random_uuid() primary key,
@@ -46,8 +54,8 @@ create table matches (
   away_team_id uuid references teams(id) not null,
   start_time timestamp with time zone not null,
   status text default 'scheduled' check (status in ('scheduled', 'live', 'finished', 'postponed')),
-  home_score integer,
-  away_score integer,
+  home_score integer check (home_score >= 0),
+  away_score integer check (away_score >= 0),
   round integer not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -62,8 +70,8 @@ create table predictions (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references profiles(id) not null,
   match_id uuid references matches(id) not null,
-  home_score integer not null,
-  away_score integer not null,
+  home_score integer not null check (home_score >= 0),
+  away_score integer not null check (away_score >= 0),
   points_awarded integer,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   
@@ -81,6 +89,14 @@ create policy "Users can insert their own predictions." on predictions
 create policy "Users can update their own predictions." on predictions
   for update using (auth.uid() = user_id);
 
+create policy "Admins can manage all predictions." on predictions
+  for all using (
+    exists (
+      select 1 from profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
 -- Function to handle new user signup
 create or replace function public.handle_new_user()
 returns trigger as $$
@@ -95,3 +111,20 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Function to recalculate all user points (Performance Optimization)
+create or replace function public.update_total_points()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  update public.profiles p
+  set points = (
+    select coalesce(sum(points_awarded), 0)
+    from public.predictions
+    where user_id = p.id
+  )
+  where true;
+end;
+$$;
