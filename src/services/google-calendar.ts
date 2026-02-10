@@ -8,12 +8,17 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
  */
 async function getCalendarClient() {
     const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
     if (!serviceAccountEmail || !privateKey) {
-        console.error('Google Calendar credentials not configured');
+        console.error('Google Calendar credentials not configured. Email:', !!serviceAccountEmail, 'Key:', !!privateKey);
         return null;
     }
+
+    // Clean the private key: handle Vercel's \n substitution and possible wrapping quotes
+    privateKey = privateKey
+        .replace(/\\n/g, '\n') // Handled escaped newlines
+        .replace(/^"(.*)"$/, '$1'); // Remove wrapping quotes if the user pasted from .env.local
 
     try {
         const auth = new google.auth.GoogleAuth({
@@ -70,12 +75,16 @@ export async function createMatchReminder(match: {
     // Calculate when the notification event should happen (at 95 mins)
     const eventTime = calculateNotificationTime(match.start_time);
 
+    // Construct the direct link for mobile reporting
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const reportLink = `${appUrl}/admin/matches/${match.id}/report`;
+
     // Create an event that lasts 15 minutes, starting exactly at 95 min mark
     const endTime = new Date(eventTime.getTime() + 15 * 60000);
 
     const event = {
         summary: `📝 Cargar: ${match.home_team.name} vs ${match.away_team.name}`,
-        description: `El partido ha terminado (95 min). Es hora de cargar el resultado en el panel de admin.\n\nPrdeArg Admin Panel`,
+        description: `El partido ha terminado (95 min).\n\n👉 CARGAR RESULTADO AQUÍ:\n${reportLink}\n\nProde Argentina Admin Panel`,
         start: {
             dateTime: eventTime.toISOString(),
             timeZone: 'America/Argentina/Buenos_Aires',
