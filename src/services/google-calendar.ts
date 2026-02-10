@@ -17,8 +17,16 @@ async function getCalendarClient() {
 
     // Clean the private key: handle Vercel's \n substitution and possible wrapping quotes
     privateKey = privateKey
-        .replace(/\\n/g, '\n') // Handled escaped newlines
-        .replace(/^"(.*)"$/, '$1'); // Remove wrapping quotes if the user pasted from .env.local
+        .trim()
+        .replace(/^['"]|['"]$/g, '')      // Remove potential wrapping quotes (single or double)
+        .replace(/\\n/g, '\n')            // Handle escaped newlines
+        .replace(/\\\\n/g, '\n');         // Handle double-escaped newlines
+
+    // Ensure the key has the correct PEM format (starts with header, ends with footer)
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        console.error('Private key format invalid: Missing PEM header');
+        return null;
+    }
 
     try {
         const auth = new google.auth.GoogleAuth({
