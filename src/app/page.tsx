@@ -1,7 +1,42 @@
-import { Trophy, Users, Calendar, ArrowRight, Star } from "lucide-react";
+'use client';
+
+import { Trophy, Users, Calendar, ArrowRight, Star, Loader2 } from "lucide-react";
 import Link from 'next/link';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { Database } from "@/types/database";
+
+type Match = Database['public']['Tables']['matches']['Row'] & {
+  home_team: Database['public']['Tables']['teams']['Row'];
+  away_team: Database['public']['Tables']['teams']['Row'];
+};
 
 export default function Home() {
+  const [featuredMatches, setFeaturedMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchFeaturedMatches() {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          home_team:teams!home_team_id(*),
+          away_team:teams!away_team_id(*)
+        `)
+        .eq('status', 'scheduled')
+        .order('start_time', { ascending: true })
+        .limit(3);
+
+      if (!error && data) {
+        setFeaturedMatches(data as Match[]);
+      }
+      setLoading(false);
+    }
+
+    fetchFeaturedMatches();
+  }, []);
+
   return (
     <div className="flex flex-col gap-16 animate-fade-in py-8">
       {/* Hero Section */}
@@ -67,69 +102,70 @@ export default function Home() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-argentina-blue font-black tracking-widest uppercase text-[10px]">
               <Star size={12} fill="currentColor" />
-              <span>Destacados</span>
+              <span>Próximos Partidos</span>
             </div>
-            <h2 className="text-4xl font-black text-white tracking-tight">Superclásicos de la Semana</h2>
+            <h2 className="text-4xl font-black text-white tracking-tight">Partidos Destacados</h2>
           </div>
           <Link href="/predictions" className="group text-argentina-blue font-black uppercase tracking-widest text-[10px] flex items-center gap-2 hover:text-white transition-colors">
-            Ver fixtures completos <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            Ver fixture completo <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Placeholder for Superclásico */}
-          <div className="relative group">
-            <div className="absolute -inset-[1px] bg-gradient-to-b from-argentina-gold/40 to-transparent rounded-3xl blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
-            <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/10 bg-navy-900/60 p-8 space-y-8">
-              <div className="flex items-center justify-between text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                <span>Fecha 15</span>
-                <span className="bg-argentina-gold/10 text-argentina-gold px-2 py-0.5 rounded-full border border-argentina-gold/20 italic">Clásico</span>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col items-center gap-3 w-[40%] text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-2xl text-white shadow-inner group-hover:scale-105 transition-transform">R</div>
-                  <span className="text-xs font-black text-white uppercase tracking-tighter">River Plate</span>
-                </div>
-                <div className="text-xl font-black text-gray-700 italic">VS</div>
-                <div className="flex flex-col items-center gap-3 w-[40%] text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-2xl text-white shadow-inner group-hover:scale-105 transition-transform">B</div>
-                  <span className="text-xs font-black text-white uppercase tracking-tighter">Boca Juniors</span>
-                </div>
-              </div>
-
-              <Link href="/predictions" className="block w-full py-4 rounded-xl bg-white/5 hover:bg-argentina-blue hover:text-navy-950 text-[10px] font-black text-argentina-blue text-center uppercase tracking-[0.2em] transition-all border border-argentina-blue/20">
-                Pronosticar Ahora
-              </Link>
-            </div>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 size={40} className="animate-spin text-argentina-blue" />
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredMatches.map((match) => (
+              <div key={match.id} className="relative group">
+                <div className="absolute -inset-[1px] bg-gradient-to-b from-argentina-blue/40 to-transparent rounded-3xl blur-md opacity-0 group-hover:opacity-40 transition-opacity" />
+                <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/10 bg-navy-900/60 p-8 space-y-8">
+                  <div className="flex items-center justify-between text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                    <span>Fecha {match.round}</span>
+                    <span className="text-gray-500">
+                      {new Date(match.start_time).toLocaleDateString('es-AR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}hs
+                    </span>
+                  </div>
 
-          {/* Placeholder for Classic 2 */}
-          <div className="relative group">
-            <div className="relative glass-panel rounded-3xl overflow-hidden border border-white/5 bg-navy-900/40 p-8 space-y-8">
-              <div className="flex items-center justify-between text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                <span>Fecha 15</span>
-                <span className="text-gray-600">Domingo 17:00hs</span>
-              </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Link href={`/teams/${match.home_team.id}`} className="flex flex-col items-center gap-3 w-[40%] text-center group/team">
+                      <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center p-3 shadow-inner group-hover/team:scale-105 transition-transform border border-white/5">
+                        {match.home_team.badge_url ? (
+                          <img src={match.home_team.badge_url} alt={match.home_team.name} className="w-full h-full object-contain drop-shadow-lg" />
+                        ) : (
+                          <div className="text-2xl font-black text-white opacity-20">{match.home_team.short_name}</div>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black text-white uppercase tracking-tighter truncate w-full group-hover/team:text-argentina-blue transition-colors">
+                        {match.home_team.name}
+                      </span>
+                    </Link>
 
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-col items-center gap-3 w-[40%] text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-2xl text-white shadow-inner group-hover:scale-105 transition-transform">I</div>
-                  <span className="text-xs font-black text-white uppercase tracking-tighter">Indep&apos;te</span>
+                    <div className="text-xl font-black text-gray-700 italic shrink-0">VS</div>
+
+                    <Link href={`/teams/${match.away_team.id}`} className="flex flex-col items-center gap-3 w-[40%] text-center group/team">
+                      <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center p-3 shadow-inner group-hover/team:scale-105 transition-transform border border-white/5">
+                        {match.away_team.badge_url ? (
+                          <img src={match.away_team.badge_url} alt={match.away_team.name} className="w-full h-full object-contain drop-shadow-lg" />
+                        ) : (
+                          <div className="text-2xl font-black text-white opacity-20">{match.away_team.short_name}</div>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-black text-white uppercase tracking-tighter truncate w-full group-hover/team:text-argentina-blue transition-colors">
+                        {match.away_team.name}
+                      </span>
+                    </Link>
+                  </div>
+
+                  <Link href="/predictions" className="block w-full py-4 rounded-xl bg-white/5 hover:bg-argentina-blue hover:text-navy-950 text-[10px] font-black text-argentina-blue text-center uppercase tracking-[0.2em] transition-all border border-argentina-blue/20">
+                    Pronosticar Ahora
+                  </Link>
                 </div>
-                <div className="text-xl font-black text-gray-700 italic">VS</div>
-                <div className="flex flex-col items-center gap-3 w-[40%] text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center font-black text-2xl text-white shadow-inner group-hover:scale-105 transition-transform">R</div>
-                  <span className="text-xs font-black text-white uppercase tracking-tighter">Racing Club</span>
-                </div>
               </div>
-
-              <Link href="/predictions" className="block w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-[10px] font-black text-argentina-blue text-center uppercase tracking-[0.2em] transition-all border border-white/5">
-                Pronosticar Ahora
-              </Link>
-            </div>
+            ))}
           </div>
-        </div>
+        )}
       </section>
     </div>
   );

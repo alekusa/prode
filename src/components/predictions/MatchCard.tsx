@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database';
 import { useAuth } from '@/context/AuthContext';
-import { Check, Loader2, Trophy, Clock, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Trophy, Clock, AlertCircle, Info } from 'lucide-react';
+import { TeamForm } from '@/components/matches/TeamForm';
+import Link from 'next/link';
 
 type Match = Database['public']['Tables']['matches']['Row'] & {
     home_team: Database['public']['Tables']['teams']['Row'];
@@ -25,6 +27,7 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
     const [loading, setLoading] = useState(false);
     const [saved, setSaved] = useState(false);
     const [hasMounted, setHasMounted] = useState(false);
+    const [hoveredTeam, setHoveredTeam] = useState<'home' | 'away' | null>(null);
 
     useEffect(() => {
         setHasMounted(true);
@@ -76,7 +79,7 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
         <div className={`relative group transition-all duration-300 ${isLocked ? 'opacity-90' : 'hover:-translate-y-1'}`}>
             <div className="absolute -inset-[1px] bg-gradient-to-b from-white/10 to-transparent rounded-2xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-            <div className="relative glass-panel rounded-2xl overflow-hidden border border-white/10 bg-navy-900/60 backdrop-blur-xl shadow-2xl">
+            <div className="relative glass-panel rounded-2xl border border-white/10 bg-navy-900/60 backdrop-blur-xl shadow-2xl">
                 {/* Header: Status and Metadata */}
                 <div className="flex items-center justify-between px-5 py-3 bg-white/5 border-b border-white/5">
                     <div className="flex items-center gap-2">
@@ -128,22 +131,37 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
                     {/* Teams and Score Section */}
                     <div className="flex items-center justify-between gap-4">
                         {/* Home Team */}
-                        <div className="flex flex-col items-center gap-3 w-1/3 group/team">
-                            <div className="relative">
-                                <div className="absolute -inset-2 bg-white/5 rounded-full blur-md opacity-0 group-hover/team:opacity-100 transition-opacity" />
-                                <div className="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-2xl bg-white/5 p-3 shadow-inner transform group-hover/team:scale-105 transition-transform">
-                                    {match.home_team.badge_url ? (
-                                        <img src={match.home_team.badge_url} alt={match.home_team.name} className="w-full h-full object-contain drop-shadow-md" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-navy-800 rounded-xl text-xs font-black text-white/20">
-                                            {match.home_team.short_name}
-                                        </div>
-                                    )}
+                        <div
+                            className="flex flex-col items-center gap-3 w-1/3 group/team relative"
+                            onMouseEnter={() => setHoveredTeam('home')}
+                            onMouseLeave={() => setHoveredTeam(null)}
+                        >
+                            <Link href={`/teams/${match.home_team_id}`} className="flex flex-col items-center gap-3 w-full">
+                                <div className="relative">
+                                    <div className="absolute -inset-4 bg-white/5 rounded-full blur-xl opacity-0 group-hover/team:opacity-100 transition-opacity" />
+                                    <div className="relative w-20 h-20 md:w-24 md:h-24 flex items-center justify-center rounded-2xl bg-white/5 p-3 shadow-inner transform group-hover/team:scale-110 transition-transform border border-white/5">
+                                        {match.home_team.badge_url ? (
+                                            <img src={match.home_team.badge_url} alt={match.home_team.name} className="w-full h-full object-contain drop-shadow-2xl" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-navy-800 rounded-xl text-xs font-black text-white/20">
+                                                {match.home_team.short_name}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <span className="text-xs md:text-sm font-black text-white text-center leading-tight h-10 flex items-center justify-center">
-                                {match.home_team.name}
-                            </span>
+                                <span className="text-xs md:text-sm font-black text-white text-center leading-tight h-10 flex items-center justify-center group-hover/team:text-argentina-blue transition-colors">
+                                    {match.home_team.name}
+                                </span>
+                            </Link>
+
+                            {/* Streak Dropdown */}
+                            {hoveredTeam === 'home' && (
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 animate-in fade-in zoom-in duration-200">
+                                    <div className="glass-panel border-2 border-argentina-blue/30 bg-navy-900/98 backdrop-blur-2xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden">
+                                        <TeamForm teamId={match.home_team_id} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Score Inputs / Result Display */}
@@ -189,22 +207,37 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
                         </div>
 
                         {/* Away Team */}
-                        <div className="flex flex-col items-center gap-3 w-1/3 group/team">
-                            <div className="relative">
-                                <div className="absolute -inset-2 bg-white/5 rounded-full blur-md opacity-0 group-hover/team:opacity-100 transition-opacity" />
-                                <div className="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-2xl bg-white/5 p-3 shadow-inner transform group-hover/team:scale-105 transition-transform">
-                                    {match.away_team.badge_url ? (
-                                        <img src={match.away_team.badge_url} alt={match.away_team.name} className="w-full h-full object-contain drop-shadow-md" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-navy-800 rounded-xl text-xs font-black text-white/20">
-                                            {match.away_team.short_name}
-                                        </div>
-                                    )}
+                        <div
+                            className="flex flex-col items-center gap-3 w-1/3 group/team relative"
+                            onMouseEnter={() => setHoveredTeam('away')}
+                            onMouseLeave={() => setHoveredTeam(null)}
+                        >
+                            <Link href={`/teams/${match.away_team_id}`} className="flex flex-col items-center gap-3 w-full">
+                                <div className="relative">
+                                    <div className="absolute -inset-4 bg-white/5 rounded-full blur-xl opacity-0 group-hover/team:opacity-100 transition-opacity" />
+                                    <div className="relative w-20 h-20 md:w-24 md:h-24 flex items-center justify-center rounded-2xl bg-white/5 p-3 shadow-inner transform group-hover/team:scale-110 transition-transform border border-white/5">
+                                        {match.away_team.badge_url ? (
+                                            <img src={match.away_team.badge_url} alt={match.away_team.name} className="w-full h-full object-contain drop-shadow-2xl" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-navy-800 rounded-xl text-xs font-black text-white/20">
+                                                {match.away_team.short_name}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <span className="text-xs md:text-sm font-black text-white text-center leading-tight h-10 flex items-center justify-center">
-                                {match.away_team.name}
-                            </span>
+                                <span className="text-xs md:text-sm font-black text-white text-center leading-tight h-10 flex items-center justify-center group-hover/team:text-argentina-blue transition-colors">
+                                    {match.away_team.name}
+                                </span>
+                            </Link>
+
+                            {/* Streak Dropdown */}
+                            {hoveredTeam === 'away' && (
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 z-50 mt-2 animate-in fade-in zoom-in duration-200">
+                                    <div className="glass-panel border-2 border-argentina-blue/30 bg-navy-900/98 backdrop-blur-2xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] overflow-hidden">
+                                        <TeamForm teamId={match.away_team_id} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -269,3 +302,4 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
         </div>
     );
 }
+
