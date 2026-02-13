@@ -4,10 +4,10 @@ import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database';
 import { useAuth } from '@/context/AuthContext';
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
+import { Clock, CheckCircle2 } from 'lucide-react';
 import { TeamForm } from '@/components/matches/TeamForm';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useRouter } from 'next/navigation';
 
 type Match = Database['public']['Tables']['matches']['Row'] & {
     home_team: Database['public']['Tables']['teams']['Row'];
@@ -23,6 +23,7 @@ interface MatchCardLargeProps {
 
 export function MatchCardLarge({ match, userPrediction }: MatchCardLargeProps) {
     const { user } = useAuth();
+    const router = useRouter();
     const [homeScore, setHomeScore] = useState<string>(userPrediction?.home_score?.toString() || '');
     const [awayScore, setAwayScore] = useState<string>(userPrediction?.away_score?.toString() || '');
     const [isSaving, setIsSaving] = useState(false);
@@ -51,7 +52,12 @@ export function MatchCardLarge({ match, userPrediction }: MatchCardLargeProps) {
     };
 
     const handlePredictionSubmit = async () => {
-        if (!user || isLocked) return;
+        if (isLocked) return;
+
+        if (!user) {
+            router.push('/login');
+            return;
+        }
 
         const home = parseInt(homeScore);
         const away = parseInt(awayScore);
@@ -189,19 +195,21 @@ export function MatchCardLarge({ match, userPrediction }: MatchCardLargeProps) {
                         {!isLocked && (
                             <button
                                 onClick={handlePredictionSubmit}
-                                disabled={isSaving || !homeScore || !awayScore}
+                                disabled={isSaving || (!user ? false : (!homeScore || !awayScore))}
                                 className={`
                                     w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all duration-300
-                                    ${saveStatus === 'success'
-                                        ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
-                                        : saveStatus === 'error'
-                                            ? 'bg-red-500 text-white'
-                                            : 'bg-argentina-blue text-navy-950 hover:bg-white hover:scale-105 shadow-lg shadow-argentina-blue/20'
+                                    ${!user
+                                        ? 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                                        : saveStatus === 'success'
+                                            ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                                            : saveStatus === 'error'
+                                                ? 'bg-red-500 text-white'
+                                                : 'bg-argentina-blue text-navy-950 hover:bg-white hover:scale-105 shadow-lg shadow-argentina-blue/20'
                                     }
                                     disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none
                                 `}
                             >
-                                {saveStatus === 'success' ? 'Guardado' : saveStatus === 'error' ? 'Error' : isSaving ? 'Guardando...' : userPrediction ? 'Actualizar' : 'Guardar'}
+                                {!user ? 'Iniciar Sesión para Jugar' : saveStatus === 'success' ? 'Guardado' : saveStatus === 'error' ? 'Error' : isSaving ? 'Guardando...' : userPrediction ? 'Actualizar' : 'Guardar'}
                             </button>
                         )}
 

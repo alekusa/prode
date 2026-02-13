@@ -194,34 +194,34 @@ export default function PredictionsPage() {
                     ))}
                 </div>
             ) : (
-                <div className="glass-panel rounded-3xl border border-white/5 overflow-hidden max-w-5xl mx-auto">
+                <div className="glass-panel rounded-3xl border border-white/5 overflow-hidden w-full">
                     <div className="divide-y divide-white/5">
                         {filteredMatches.map((match) => (
-                            <div key={match.id} className="flex items-center justify-between p-6 hover:bg-white/5 transition-colors group">
-                                <div className="flex items-center gap-6 w-5/12 justify-end text-right">
-                                    <span className="text-lg font-bold text-white hidden sm:inline group-hover:text-argentina-blue transition-colors">{match.home_team.name}</span>
-                                    <span className="text-lg font-black text-white sm:hidden">{match.home_team.short_name}</span>
-                                    <img src={match.home_team.badge_url || ''} className="w-10 h-10 object-contain drop-shadow-lg" alt="" />
+                            <div key={match.id} className="flex items-center justify-between p-8 md:p-12 hover:bg-white/5 transition-colors group">
+                                <div className="flex items-center gap-6 md:gap-10 w-5/12 justify-end text-right">
+                                    <span className="text-xl md:text-4xl font-black text-white hidden sm:inline group-hover:text-argentina-blue transition-colors tracking-tight">{match.home_team.name}</span>
+                                    <span className="text-2xl font-black text-white sm:hidden">{match.home_team.short_name}</span>
+                                    <img src={match.home_team.badge_url || ''} className="w-16 h-16 md:w-28 md:h-28 object-contain drop-shadow-2xl transition-transform group-hover:scale-110 duration-300" alt="" />
                                 </div>
 
-                                <div className="flex flex-col items-center gap-1 w-2/12 min-w-[120px]">
-                                    <div className="flex flex-col items-center leading-none">
-                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-                                            {new Date(match.start_time).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' })}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                                            {new Date(match.start_time).toLocaleDateString('es-AR', { month: 'short' })} • {new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
-                                        </span>
-                                    </div>
-                                    <div className="bg-navy-950/80 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 font-mono font-black text-lg text-white shadow-inner min-w-[60px] text-center">
+                                <div className="flex flex-col items-center gap-3 w-2/12 min-w-[140px]">
+                                    <div className="bg-navy-950 px-6 py-3 rounded-2xl border-2 border-white/10 font-mono font-black text-3xl md:text-5xl text-white shadow-inner min-w-[100px] text-center">
                                         {match.status === 'scheduled' ? 'vs' : `${match.home_score} - ${match.away_score}`}
                                     </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-xs md:text-sm text-gray-400 font-bold uppercase tracking-[0.2em]">
+                                            {new Date(match.start_time).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                        </span>
+                                        <span className="text-xs md:text-sm text-argentina-blue font-black uppercase tracking-[0.2em] bg-argentina-blue/10 px-3 py-1 rounded-full border border-argentina-blue/20">
+                                            {new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <div className="flex items-center gap-6 w-5/12">
-                                    <img src={match.away_team.badge_url || ''} className="w-10 h-10 object-contain drop-shadow-lg" alt="" />
-                                    <span className="text-lg font-bold text-white hidden sm:inline group-hover:text-argentina-blue transition-colors">{match.away_team.name}</span>
-                                    <span className="text-lg font-black text-white sm:hidden">{match.away_team.short_name}</span>
+                                <div className="flex items-center gap-6 md:gap-10 w-5/12">
+                                    <img src={match.away_team.badge_url || ''} className="w-16 h-16 md:w-28 md:h-28 object-contain drop-shadow-2xl transition-transform group-hover:scale-110 duration-300" alt="" />
+                                    <span className="text-xl md:text-4xl font-black text-white hidden sm:inline group-hover:text-argentina-blue transition-colors tracking-tight">{match.away_team.name}</span>
+                                    <span className="text-2xl font-black text-white sm:hidden">{match.away_team.short_name}</span>
                                 </div>
                             </div>
                         ))}
