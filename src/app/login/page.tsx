@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getURL } from '@/lib/utils';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -40,7 +41,7 @@ export default function LoginPage() {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
+                    redirectTo: `${getURL()}auth/callback`,
                 },
             });
             if (error) throw error;
