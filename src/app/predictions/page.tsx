@@ -204,17 +204,17 @@ export default function PredictionsPage() {
                                     <img src={match.home_team.badge_url || ''} className="w-10 h-10 object-contain drop-shadow-lg" alt="" />
                                 </div>
 
-                                <div className="flex flex-col items-center gap-2 w-2/12">
-                                    <div className="bg-navy-950 px-4 py-1.5 rounded-lg border border-white/10 font-mono font-black text-xl text-white shadow-inner">
-                                        {match.status === 'scheduled' ? 'vs' : `${match.home_score} - ${match.away_score}`}
+                                <div className="flex flex-col items-center gap-1 w-2/12 min-w-[120px]">
+                                    <div className="flex flex-col items-center leading-none">
+                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                                            {new Date(match.start_time).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' })}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                                            {new Date(match.start_time).toLocaleDateString('es-AR', { month: 'short' })} • {new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
+                                        </span>
                                     </div>
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                            {new Date(match.start_time).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                        </span>
-                                        <span className="text-[10px] text-argentina-blue font-black uppercase tracking-widest">
-                                            {new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
-                                        </span>
+                                    <div className="bg-navy-950/80 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 font-mono font-black text-lg text-white shadow-inner min-w-[60px] text-center">
+                                        {match.status === 'scheduled' ? 'vs' : `${match.home_score} - ${match.away_score}`}
                                     </div>
                                 </div>
 
