@@ -17,6 +17,8 @@ export default function LeaderboardPage() {
     const [selectedRound, setSelectedRound] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingRounds, setLoadingRounds] = useState(true);
+    const [totalPlayersConfig, setTotalPlayersConfig] = useState<string | null>(null);
+    const [expanded, setExpanded] = useState(false);
 
     // 1. Fetch available rounds
     useEffect(() => {
@@ -38,10 +40,24 @@ export default function LeaderboardPage() {
             setLoadingRounds(false);
         }
         fetchRounds();
+
+        // Fetch total players config
+        async function fetchSettings() {
+            const { data } = await supabase
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'total_players_fictional')
+                .single();
+            if (data) {
+                setTotalPlayersConfig(data.value);
+            }
+        }
+        fetchSettings();
     }, []);
 
     // 2. Fetch specific round leaderboard
     useEffect(() => {
+        setExpanded(false); // Reset expansion on round change
         if (selectedRound === null) return;
 
         async function fetchLeaderboard() {
@@ -86,6 +102,9 @@ export default function LeaderboardPage() {
                     points: userPoints[profile.id] || 0
                 })).sort((a, b) => b.points - a.points);
 
+                // We want to show top 20 initially
+                // logic: if not expanded, show slice(0, 20). If expanded, show all.
+                // We store full list in state, and slice in render.
                 setUsers(combined);
             } catch (err: any) {
                 if (err.name !== 'AbortError') {
@@ -162,7 +181,7 @@ export default function LeaderboardPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {users.map((user, index) => (
+                                {(expanded ? users : users.slice(0, 20)).map((user, index) => (
                                     <tr key={user.id} className={`
                                         group hover:bg-white/[0.03] transition-colors
                                         ${index === 0 ? 'bg-yellow-500/[0.03]' : ''}
@@ -217,6 +236,17 @@ export default function LeaderboardPage() {
                         </div>
                     </div>
                 )}
+
+                {!loading && users.length > 20 && !expanded && (
+                    <div className="p-4 bg-white/5 border-t border-white/5 text-center">
+                        <button
+                            onClick={() => setExpanded(true)}
+                            className="text-argentina-blue hover:text-argentina-gold font-bold text-sm transition-colors py-2 px-4 rounded-lg hover:bg-white/5"
+                        >
+                            ¡Y otros {users.length - 20} jugadores! Ver lista completa...
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Hint for users */}
@@ -224,6 +254,11 @@ export default function LeaderboardPage() {
                 <p className="text-gray-600 text-sm italic">
                     * Los puntos se habilitan una vez que el administrador finaliza el cálculo de la fecha.
                 </p>
+                {totalPlayersConfig && (
+                    <div className="mt-4 inline-block px-4 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm font-medium text-gray-300">
+                        <span className="text-argentina-blue font-bold text-lg mr-1">{totalPlayersConfig}</span> Jugadores participando
+                    </div>
+                )}
             </div>
         </div>
     );

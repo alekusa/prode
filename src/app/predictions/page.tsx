@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database';
-import { MatchCard } from '@/components/predictions/MatchCard';
+import { MatchCardLarge } from '@/components/predictions/MatchCardLarge';
 import { useAuth } from '@/context/AuthContext';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
@@ -120,89 +120,73 @@ export default function PredictionsPage() {
     const filteredMatches = matches.filter(m => m.round === selectedRound);
 
     return (
-        <div className="space-y-8 animate-fade-in w-full max-w-[95%] mx-auto px-4 md:px-8 pb-20">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-argentina-blue font-bold tracking-widest uppercase text-[10px]">
-                        <Calendar size={12} />
-                        <span>Torneo Apertura 2026</span>
-                    </div>
-                    <h1 className="text-4xl font-black text-white tracking-tight glow-text leading-none">
-                        {activeTab === 'predictions' ? 'Hacé tu Jugada' : 'Fixture Completo'}
-                    </h1>
-                </div>
+        <div className="space-y-12 animate-fade-in w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pb-32">
 
-                {/* View Switcher */}
-                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+            {/* Header Section */}
+            <div className="flex flex-col items-center text-center space-y-4 pt-8">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-argentina-blue/10 border border-argentina-blue/20">
+                    <Calendar size={14} className="text-argentina-blue" />
+                    <span className="text-xs font-black tracking-widest uppercase text-argentina-blue">Torneo Apertura 2026</span>
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter glow-text leading-none">
+                    {activeTab === 'predictions' ? 'Hacé tu Jugada' : 'Fixture Completo'}
+                </h1>
+
+                {/* View Switcher - Minimalist */}
+                <div className="flex mt-8 p-1 bg-navy-900/50 rounded-xl border border-white/5 backdrop-blur-sm">
                     <button
                         onClick={() => setActiveTab('predictions')}
-                        className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'predictions' ? 'bg-argentina-blue text-navy-950 shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'predictions' ? 'bg-white text-navy-950 shadow-lg scale-105' : 'text-gray-500 hover:text-white'}`}
                     >
                         Pronosticar
                     </button>
                     <button
                         onClick={() => setActiveTab('fixture')}
-                        className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'fixture' ? 'bg-argentina-blue text-navy-950 shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'fixture' ? 'bg-white text-navy-950 shadow-lg scale-105' : 'text-gray-500 hover:text-white'}`}
                     >
                         Fixture
                     </button>
                 </div>
             </div>
 
-            {/* Round Selector */}
-            <div className="sticky top-16 z-30 bg-navy-950/80 backdrop-blur-md py-4 -mx-4 px-4 border-b border-white/5">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => handleRoundChange(Math.max(1, selectedRound - 1))}
-                        disabled={selectedRound === 1}
-                        className="p-2 rounded-full hover:bg-white/5 disabled:opacity-20 transition-colors"
-                    >
-                        <ChevronLeft size={20} className="text-white" />
-                    </button>
+            {/* Pagination / Round Selector */}
+            <div className="flex items-center justify-center gap-6 sticky top-20 z-40 py-4 backdrop-blur-md -mx-4 px-4 bg-navy-950/80 border-y border-white/5">
+                <button
+                    onClick={() => handleRoundChange(Math.max(1, selectedRound - 1))}
+                    disabled={selectedRound === 1}
+                    className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-110 disabled:opacity-20 disabled:hover:scale-100 transition-all group"
+                >
+                    <ChevronLeft size={24} className="text-white group-hover:text-argentina-blue transition-colors" />
+                </button>
 
-                    <div className="flex-1 overflow-hidden relative">
-                        <div className="flex overflow-x-auto no-scrollbar gap-2 scroll-smooth px-2">
-                            {rounds.map(round => (
-                                <button
-                                    key={round}
-                                    onClick={() => handleRoundChange(round)}
-                                    className={`flex-shrink-0 px-6 py-2 rounded-xl font-bold text-sm transition-all border ${selectedRound === round
-                                        ? 'bg-argentina-blue text-navy-950 border-argentina-blue shadow-[0_0_15px_rgba(117,170,219,0.3)]'
-                                        : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/10 hover:text-white'
-                                        }`}
-                                >
-                                    Fecha {round}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                <h2 className="text-3xl font-black text-white tracking-tight min-w-[180px] text-center">
+                    Fecha <span className="text-argentina-blue">{selectedRound}</span>
+                </h2>
 
-                    <button
-                        onClick={() => handleRoundChange(Math.min(16, selectedRound + 1))}
-                        disabled={selectedRound === 16}
-                        className="p-2 rounded-full hover:bg-white/5 disabled:opacity-20 transition-colors"
-                    >
-                        <ChevronRight size={20} className="text-white" />
-                    </button>
-                </div>
+                <button
+                    onClick={() => handleRoundChange(Math.min(16, selectedRound + 1))}
+                    disabled={selectedRound === 16}
+                    className="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:scale-110 disabled:opacity-20 disabled:hover:scale-100 transition-all group"
+                >
+                    <ChevronRight size={24} className="text-white group-hover:text-argentina-blue transition-colors" />
+                </button>
             </div>
 
             {/* Content Display */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="h-64 rounded-2xl bg-white/5 animate-pulse border border-white/5" />
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-80 rounded-[2rem] bg-white/5 animate-pulse border border-white/5" />
                     ))}
                 </div>
             ) : filteredMatches.length === 0 ? (
-                <div className="text-center py-20 bg-navy-900/40 rounded-3xl border border-white/5 border-dashed">
-                    <p className="text-gray-400 text-lg">No hay partidos programados para esta fecha.</p>
+                <div className="text-center py-32 bg-navy-900/40 rounded-[3rem] border-2 border-dashed border-white/5">
+                    <p className="text-gray-400 text-xl font-medium">No hay partidos programados para esta fecha.</p>
                 </div>
             ) : activeTab === 'predictions' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {filteredMatches.map((match) => (
-                        <MatchCard
+                        <MatchCardLarge
                             key={match.id}
                             match={match}
                             userPrediction={predictions[match.id]}
@@ -210,27 +194,34 @@ export default function PredictionsPage() {
                     ))}
                 </div>
             ) : (
-                <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                <div className="glass-panel rounded-3xl border border-white/5 overflow-hidden max-w-5xl mx-auto">
                     <div className="divide-y divide-white/5">
                         {filteredMatches.map((match) => (
-                            <div key={match.id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
-                                <div className="flex items-center gap-4 w-1/3 justify-end text-right">
-                                    <span className="text-xs font-bold text-white hidden sm:inline">{match.home_team.name}</span>
-                                    <span className="text-xs font-black text-white sm:hidden">{match.home_team.short_name}</span>
-                                    <img src={match.home_team.badge_url || ''} className="w-6 h-6 object-contain" alt="" />
+                            <div key={match.id} className="flex items-center justify-between p-6 hover:bg-white/5 transition-colors group">
+                                <div className="flex items-center gap-6 w-5/12 justify-end text-right">
+                                    <span className="text-lg font-bold text-white hidden sm:inline group-hover:text-argentina-blue transition-colors">{match.home_team.name}</span>
+                                    <span className="text-lg font-black text-white sm:hidden">{match.home_team.short_name}</span>
+                                    <img src={match.home_team.badge_url || ''} className="w-10 h-10 object-contain drop-shadow-lg" alt="" />
                                 </div>
-                                <div className="flex flex-col items-center gap-1 w-1/4">
-                                    <div className="bg-navy-950 px-3 py-1 rounded-lg border border-white/10 font-mono font-black text-white">
+
+                                <div className="flex flex-col items-center gap-2 w-2/12">
+                                    <div className="bg-navy-950 px-4 py-1.5 rounded-lg border border-white/10 font-mono font-black text-xl text-white shadow-inner">
                                         {match.status === 'scheduled' ? 'vs' : `${match.home_score} - ${match.away_score}`}
                                     </div>
-                                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">
-                                        {new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
-                                    </span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                            {new Date(match.start_time).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                        </span>
+                                        <span className="text-[10px] text-argentina-blue font-black uppercase tracking-widest">
+                                            {new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}hs
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-4 w-1/3">
-                                    <img src={match.away_team.badge_url || ''} className="w-6 h-6 object-contain" alt="" />
-                                    <span className="text-xs font-bold text-white hidden sm:inline">{match.away_team.name}</span>
-                                    <span className="text-xs font-black text-white sm:hidden">{match.away_team.short_name}</span>
+
+                                <div className="flex items-center gap-6 w-5/12">
+                                    <img src={match.away_team.badge_url || ''} className="w-10 h-10 object-contain drop-shadow-lg" alt="" />
+                                    <span className="text-lg font-bold text-white hidden sm:inline group-hover:text-argentina-blue transition-colors">{match.away_team.name}</span>
+                                    <span className="text-lg font-black text-white sm:hidden">{match.away_team.short_name}</span>
                                 </div>
                             </div>
                         ))}

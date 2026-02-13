@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Users, Trophy, CheckCircle } from "lucide-react";
+import { Users, Trophy, CheckCircle, UserCog } from "lucide-react";
 import { ScoringButton } from "@/components/admin/ScoringButton";
+import { AdminSettings } from "@/components/admin/AdminSettings";
+import { WildcardBetting } from "@/components/admin/WildcardBetting";
+import Link from "next/link";
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({ users: 0, matches: 0, predictions: 0 });
@@ -27,7 +30,16 @@ export default function AdminDashboard() {
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex justify-between items-start">
-                <h1 className="text-3xl font-black text-white">Dashboard</h1>
+                <div className="space-y-4">
+                    <h1 className="text-3xl font-black text-white">Dashboard</h1>
+                    <Link
+                        href="/admin/users"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-bold text-white transition-all hover:scale-105"
+                    >
+                        <UserCog size={18} />
+                        Gestión de Usuarios
+                    </Link>
+                </div>
                 <ScoringButton />
             </div>
 
@@ -61,6 +73,11 @@ export default function AdminDashboard() {
                         <p className="text-3xl font-bold text-white">{stats.predictions}</p>
                     </div>
                 </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <AdminSettings />
+                <WildcardBetting />
             </div>
         </div>
     );
