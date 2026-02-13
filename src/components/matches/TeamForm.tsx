@@ -31,7 +31,7 @@ export function TeamForm({ teamId }: TeamFormProps) {
                 .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
                 .eq('status', 'finished')
                 .order('start_time', { ascending: false })
-                .limit(5);
+                .limit(2);
 
             if (!error && data) {
                 setLastMatches(data as Match[]);
@@ -61,8 +61,8 @@ export function TeamForm({ teamId }: TeamFormProps) {
     }
 
     return (
-        <div className="p-5 space-y-3 min-w-[220px]">
-            <div className="text-[10px] font-black text-argentina-blue uppercase tracking-[0.2em] mb-3 border-b border-argentina-blue/20 pb-2">
+        <div className="p-3 space-y-2 min-w-[140px]">
+            <div className="text-[9px] font-black text-argentina-blue uppercase tracking-[0.2em] mb-2 border-b border-argentina-blue/20 pb-1">
                 Últimos Resultados
             </div>
             <div className="space-y-2">

@@ -120,7 +120,7 @@ export default function PredictionsPage() {
     const filteredMatches = matches.filter(m => m.round === selectedRound);
 
     return (
-        <div className="space-y-8 animate-fade-in max-w-6xl mx-auto px-4 pb-20">
+        <div className="space-y-8 animate-fade-in w-full max-w-[95%] mx-auto px-4 md:px-8 pb-20">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
                 <div className="space-y-1">
