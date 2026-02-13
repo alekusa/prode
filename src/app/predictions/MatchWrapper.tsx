@@ -56,5 +56,5 @@ export function MatchWrapper({ match }: { match: Match }) {
         // For better UX, we can just render the card and let the values pop in
     }
 
-    return <MatchCard match={match} userPrediction={prediction} key={user?.id /* Reset on user change */} />;
+    return <MatchCard match={match} userPrediction={prediction || undefined} key={user?.id /* Reset on user change */} />;
 }
