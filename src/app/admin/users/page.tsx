@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Trash2, Loader2, Search, KeyRound, ShieldAlert, UserCog } from 'lucide-react';
+import { Trash2, Loader2, Search, KeyRound, ShieldAlert, UserCog, Edit, LogIn, Dices, Save, User as UserIcon } from 'lucide-react';
+import { PASSWORD_DEFAULT } from '@/lib/constants';
 
 type User = {
     id: string;
@@ -19,14 +20,18 @@ export default function AdminUsersPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [wildcardUserId, setWildcardUserId] = useState<string | null>(null);
 
-    // Reset Password State
-    const [showResetModal, setShowResetModal] = useState(false);
+    // Edit Modal State
+    const [showEditModal, setShowEditModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [newPassword, setNewPassword] = useState('');
+    const [editUsername, setEditUsername] = useState('');
+    const [editPassword, setEditPassword] = useState('');
+    const [isWildcard, setIsWildcard] = useState(false);
 
     useEffect(() => {
         fetchUsers();
+        fetchWildcard();
     }, []);
 
     useEffect(() => {
@@ -39,6 +44,15 @@ export default function AdminUsersPage() {
             )
         );
     }, [search, users]);
+
+    async function fetchWildcard() {
+        const { data } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'wildcard_user_id')
+            .single();
+        if (data) setWildcardUserId(data.value);
+    }
 
     async function fetchUsers() {
         setLoading(true);
@@ -78,46 +92,95 @@ export default function AdminUsersPage() {
         }
     }
 
-    async function handleResetPassword() {
-        if (!selectedUser || !newPassword) return;
-        if (newPassword.length < 6) {
-            alert('La contraseña debe tener al menos 6 caracteres');
-            return;
-        }
+    const openEditModal = (user: User) => {
+        setSelectedUser(user);
+        setEditUsername(user.username);
+        setEditPassword('');
+        setIsWildcard(wildcardUserId === user.id);
+        setShowEditModal(true);
+    };
 
-        setActionLoading('reset');
+    async function handleSaveChanges() {
+        if (!selectedUser) return;
+        setActionLoading('save');
+
         try {
-            const res = await fetch('/api/admin/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'reset_password',
-                    userId: selectedUser.id,
-                    newPassword
-                })
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.error || 'Error resetting password');
+            // 1. Update Username if changed
+            if (editUsername !== selectedUser.username) {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'update_profile', userId: selectedUser.id, username: editUsername })
+                });
             }
 
-            alert(`Contraseña actualizada para ${selectedUser.email}`);
-            setShowResetModal(false);
-            setNewPassword('');
-            setSelectedUser(null);
+            // 2. Update Password if provided
+            if (editPassword) {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'reset_password', userId: selectedUser.id, newPassword: editPassword })
+                });
+            }
+
+            // 3. Update Wildcard Status
+            const currentlyWildcard = wildcardUserId === selectedUser.id;
+            if (isWildcard && !currentlyWildcard) {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'set_wildcard', userId: selectedUser.id })
+                });
+                setWildcardUserId(selectedUser.id);
+            } else if (!isWildcard && currentlyWildcard) {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'remove_wildcard' })
+                });
+                setWildcardUserId(null);
+            }
+
+            alert('Cambios guardados correctamente');
+            fetchUsers();
+            setShowEditModal(false);
         } catch (error: any) {
-            alert('Error: ' + error.message);
+            alert('Error al guardar cambios: ' + error.message);
         } finally {
             setActionLoading(null);
         }
     }
 
-    const openResetModal = (user: User) => {
-        setSelectedUser(user);
-        setNewPassword('');
-        setShowResetModal(true);
-    };
+    async function handleLoginAs() {
+        if (!selectedUser) return;
+
+        const passwordToUse = editPassword || PASSWORD_DEFAULT;
+        const confirmMsg = editPassword
+            ? `Se usará la contraseña ingresada: "${editPassword}"`
+            : `Se usará la contraseña por defecto: "${PASSWORD_DEFAULT}"\n(Asegúrate de haberla seteado antes si no la conoces)`;
+
+        if (!confirm(`${confirmMsg}\n\n¿Estás seguro? Se cerrará tu sesión actual de administrador.`)) return;
+
+        setActionLoading('login');
+        try {
+            // If explicit password was typed, update it first to be sure
+            if (editPassword) {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'reset_password', userId: selectedUser.id, newPassword: editPassword })
+                });
+            }
+
+            // Perform login
+            await supabase.auth.signOut();
+            const { error } = await supabase.auth.signInWithPassword({
+                email: selectedUser.email,
+                password: passwordToUse
+            });
+
+            if (error) throw error;
+            window.location.href = '/predictions';
+        } catch (error: any) {
+            alert('Error al intentar login: ' + error.message);
+            setActionLoading(null);
+        }
+    }
 
     return (
         <div className="space-y-8 animate-fade-in pb-20">
@@ -167,10 +230,24 @@ export default function AdminUsersPage() {
                                     <tr key={user.id} className="hover:bg-white/5 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-navy-900 border border-white/10 flex items-center justify-center text-xs font-bold text-argentina-blue">
-                                                    {user.username ? user.username[0].toUpperCase() : 'U'}
+                                                <div className="relative">
+                                                    <div className="w-8 h-8 rounded-full bg-navy-900 border border-white/10 flex items-center justify-center text-xs font-bold text-argentina-blue">
+                                                        {user.username ? user.username[0].toUpperCase() : 'U'}
+                                                    </div>
+                                                    {wildcardUserId === user.id && (
+                                                        <div className="absolute -top-1 -right-1 bg-purple-500 rounded-full p-0.5 border border-navy-900 shadow-lg" title="Usuario Comodín">
+                                                            <Dices size={10} className="text-white" />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <span className="font-bold text-white">{user.username}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-white flex items-center gap-2">
+                                                        {user.username}
+                                                        {wildcardUserId === user.id && (
+                                                            <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/20 uppercase font-black tracking-tighter">Comodín</span>
+                                                        )}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-300 font-mono">{user.email}</td>
@@ -183,11 +260,11 @@ export default function AdminUsersPage() {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
                                                 <button
-                                                    onClick={() => openResetModal(user)}
-                                                    className="p-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-white transition-colors border border-orange-500/20"
-                                                    title="Resetear Contraseña"
+                                                    onClick={() => openEditModal(user)}
+                                                    className="p-2 rounded-lg bg-argentina-blue/10 text-argentina-blue hover:bg-argentina-blue hover:text-navy-950 transition-colors border border-argentina-blue/20"
+                                                    title="Editar Usuario"
                                                 >
-                                                    <KeyRound size={16} />
+                                                    <Edit size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteUser(user.id)}
@@ -207,48 +284,103 @@ export default function AdminUsersPage() {
                 </div>
             )}
 
-            {/* Reset Password Modal */}
-            {showResetModal && selectedUser && (
+            {/* Edit User Modal */}
+            {showEditModal && selectedUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-                    <div className="w-full max-w-md bg-navy-900 border border-white/10 rounded-2xl p-6 shadow-2xl space-y-6">
-                        <div className="flex items-center gap-4 text-orange-400">
-                            <div className="p-3 rounded-full bg-orange-500/20">
-                                <ShieldAlert size={24} />
+                    <div className="w-full max-w-lg bg-navy-900 border border-white/10 rounded-[2rem] p-8 shadow-2xl space-y-8 overflow-hidden relative">
+                        {/* Decoration */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-argentina-blue/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+                        <div className="flex items-center gap-4 text-argentina-blue relative border-b border-white/5 pb-6">
+                            <div className="p-4 rounded-2xl bg-argentina-blue/10 border border-argentina-blue/20">
+                                <UserIcon size={32} />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-white">Resetear Contraseña</h3>
-                                <p className="text-xs text-gray-400">Usuario: {selectedUser.email}</p>
+                                <h3 className="text-2xl font-black text-white tracking-tight">Editar Usuario</h3>
+                                <p className="text-sm text-gray-400 font-mono">{selectedUser.email}</p>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-300">Nueva Contraseña</label>
-                            <input
-                                type="text"
-                                value={newPassword}
-                                onChange={e => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
-                                placeholder="Escribe la nueva clave..."
-                            />
-                            <p className="text-xs text-gray-500">
-                                Esta acción cambiará inmediatamente la contraseña del usuario. Deberás comunicársela manualmente.
-                            </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Username */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Nombre a mostrar</label>
+                                <input
+                                    type="text"
+                                    value={editUsername}
+                                    onChange={e => setEditUsername(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-argentina-blue font-bold"
+                                    placeholder="Nombre del usuario"
+                                />
+                            </div>
+
+                            {/* Password */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Cambiar Contraseña</label>
+                                <div className="relative">
+                                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                                    <input
+                                        type="text"
+                                        value={editPassword}
+                                        onChange={e => setEditPassword(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-sm"
+                                        placeholder="Nueva clave (opcional)..."
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-2">
+                        {/* Special Actions */}
+                        <div className="bg-white/5 rounded-2xl p-6 border border-white/10 space-y-4">
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Configuraciones Especiales</h4>
+
+                            <label className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group border border-transparent hover:border-white/5">
+                                <div className={`p-2 rounded-lg transition-colors ${isWildcard ? 'bg-purple-500/20 text-purple-400' : 'bg-white/5 text-gray-600'}`}>
+                                    <Dices size={20} />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-white group-hover:text-purple-400 transition-colors">Usuario Comodín</p>
+                                    <p className="text-[11px] text-gray-500 leading-tight">Identifica a este usuario como el comodín del torneo.</p>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={isWildcard}
+                                    onChange={e => setIsWildcard(e.target.checked)}
+                                    className="w-5 h-5 rounded border-white/10 bg-white/5 text-purple-500 focus:ring-purple-500"
+                                />
+                            </label>
+
                             <button
-                                onClick={() => setShowResetModal(false)}
-                                className="px-4 py-2 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                                onClick={handleLoginAs}
+                                disabled={actionLoading === 'login'}
+                                className="w-full flex items-center justify-between p-4 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all border border-blue-500/20 group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <LogIn size={20} />
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Iniciar Sesión con este usuario</p>
+                                        <p className="text-[11px] text-gray-500 leading-tight">Se cerrará tu sesión actual de Admin.</p>
+                                    </div>
+                                </div>
+                                {actionLoading === 'login' ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} className="opacity-50" />}
+                            </button>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button
+                                onClick={() => setShowEditModal(false)}
+                                className="px-6 py-3 rounded-xl text-sm font-black text-gray-500 hover:text-white hover:bg-white/5 transition-colors uppercase tracking-widest"
                             >
                                 Cancelar
                             </button>
                             <button
-                                onClick={handleResetPassword}
-                                disabled={!newPassword || actionLoading === 'reset'}
-                                className="px-4 py-2 rounded-xl text-sm font-bold bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                onClick={handleSaveChanges}
+                                disabled={actionLoading === 'save'}
+                                className="px-8 py-3 rounded-xl text-sm font-black bg-argentina-blue text-navy-950 hover:bg-white hover:scale-105 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-argentina-blue/20 uppercase tracking-widest"
                             >
-                                {actionLoading === 'reset' && <Loader2 size={16} className="animate-spin" />}
-                                Confirmar Cambio
+                                {actionLoading === 'save' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                Guardar Cambios
                             </button>
                         </div>
                     </div>
@@ -257,3 +389,4 @@ export default function AdminUsersPage() {
         </div>
     );
 }
+

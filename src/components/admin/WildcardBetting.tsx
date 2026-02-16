@@ -31,6 +31,7 @@ export function WildcardBetting() {
 
     // Login State
     const [loggingIn, setLoggingIn] = useState(false);
+    const [wildcardUserId, setWildcardUserId] = useState<string | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -55,6 +56,11 @@ export function WildcardBetting() {
             .order('start_time', { ascending: true }); // Secondary sort
 
         if (matchesData) setMatches(matchesData as any);
+
+        // Load wildcard
+        const { data: wildcard } = await supabase.from('app_settings').select('value').eq('key', 'wildcard_user_id').single();
+        if (wildcard) setWildcardUserId(wildcard.value);
+
         setLoading(false);
     }
 
@@ -318,7 +324,9 @@ export function WildcardBetting() {
                     >
                         <option value="">-- Seleccionar --</option>
                         {filteredUsers.map(u => (
-                            <option key={u.id} value={u.id}>{u.username || 'Sin nombre'} ({u.id.slice(0, 4)}...)</option>
+                            <option key={u.id} value={u.id}>
+                                {u.id === wildcardUserId ? '🃏 ' : ''}{u.username || 'Sin nombre'} ({u.id.slice(0, 4)}...)
+                            </option>
                         ))}
                     </select>
 

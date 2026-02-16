@@ -243,7 +243,7 @@ export default function LeaderboardPage() {
                             onClick={() => setExpanded(true)}
                             className="text-argentina-blue hover:text-argentina-gold font-bold text-sm transition-colors py-2 px-4 rounded-lg hover:bg-white/5"
                         >
-                            ¡Y otros {users.length - 20} jugadores! Ver lista completa...
+                            ¡Ver {users.length - 20} jugadores más!
                         </button>
                     </div>
                 )}

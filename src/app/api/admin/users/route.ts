@@ -93,7 +93,46 @@ export async function POST(request: Request) {
             );
 
             if (error) throw error;
+            return NextResponse.json({ success: true });
+        }
 
+        if (action === 'update_profile') {
+            if (!userId || !body.username) {
+                return NextResponse.json({ error: 'Missing userId or username' }, { status: 400 });
+            }
+
+            const { error } = await supabaseAdmin
+                .from('profiles')
+                .update({ username: body.username })
+                .eq('id', userId);
+
+            if (error) throw error;
+            return NextResponse.json({ success: true });
+        }
+
+        if (action === 'set_wildcard') {
+            if (!userId) {
+                return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+            }
+
+            const { error } = await supabaseAdmin
+                .from('app_settings')
+                .upsert({
+                    key: 'wildcard_user_id',
+                    value: userId
+                });
+
+            if (error) throw error;
+            return NextResponse.json({ success: true });
+        }
+
+        if (action === 'remove_wildcard') {
+            const { error } = await supabaseAdmin
+                .from('app_settings')
+                .delete()
+                .eq('key', 'wildcard_user_id');
+
+            if (error) throw error;
             return NextResponse.json({ success: true });
         }
 
