@@ -156,7 +156,8 @@ export default function ProfilePage() {
             }
         } catch (error: any) {
             console.error('Error in handleDeposit:', error);
-            setMessage({ type: 'error', text: 'No se pudo generar el enlace de pago. Intenta más tarde.' });
+            const errorMessage = error instanceof Error ? error.message : 'No se pudo generar el enlace de pago. Intenta más tarde.';
+            setMessage({ type: 'error', text: `${errorMessage}` });
             setIsDepositing(false);
         }
     };

@@ -59,10 +59,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ init_point: response.init_point });
 
     } catch (error: any) {
-        console.error('MercadoPago Checkout Error Details:', error?.message, error?.cause, error?.response);
+        const errorMsg = error?.message || 'Error desconocido';
+        const errorDetails = error?.response?.data || error?.response || error?.cause || null;
+
+        console.error('MercadoPago Checkout Error Details:', errorMsg, errorDetails);
+
         return NextResponse.json({
-            error: error?.message || 'Internal server error',
-            details: error?.response || error?.cause || null
+            error: errorMsg,
+            details: errorDetails
         }, { status: 500 });
     }
 }
