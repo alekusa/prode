@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { User, Trophy, Calendar, CheckCircle2, AlertCircle, Edit2, Save, X } from 'lucide-react';
+import { User, Trophy, Calendar, CheckCircle2, AlertCircle, Edit2, Save, X, Wallet } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 interface PredictionWithDetails {
     id: string;
@@ -29,8 +30,26 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(false);
     const [predictions, setPredictions] = useState<PredictionWithDetails[]>([]);
     const [loadingPredictions, setLoadingPredictions] = useState(true);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [isDepositing, setIsDepositing] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
+    const searchParams = useSearchParams();
 
+    useEffect(() => {
+        const paymentStatus = searchParams.get('payment');
+        if (paymentStatus === 'success') {
+            setMessage({ type: 'success', text: '¡Pago aprobado! Tu saldo se acreditará en breve.' });
+            // Clean URL
+            window.history.replaceState(null, '', '/profile');
+            // Refresh profile to get new balance
+            refreshProfile();
+        } else if (paymentStatus === 'failure') {
+            setMessage({ type: 'error', text: 'El pago fue rechazado o fallido. Intenta nuevamente.' });
+            window.history.replaceState(null, '', '/profile');
+        } else if (paymentStatus === 'pending') {
+            setMessage({ type: 'info', text: 'El pago está pendiente de aprobación.' });
+            window.history.replaceState(null, '', '/profile');
+        }
+    }, [searchParams, refreshProfile]);
     useEffect(() => {
         if (profile) {
             setFullName(profile.full_name || '');
@@ -105,6 +124,30 @@ export default function ProfilePage() {
             setMessage({ type: 'error', text: error.message || 'Error al actualizar el perfil' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeposit = async () => {
+        if (!user) return;
+        setIsDepositing(true);
+        setMessage(null);
+        try {
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+            });
+            const data = await res.json();
+
+            if (res.ok && data.init_point) {
+                window.location.href = data.init_point;
+            } else {
+                throw new Error(data.error || 'Error al iniciar el pago');
+            }
+        } catch (error: any) {
+            console.error('Error in handleDeposit:', error);
+            setMessage({ type: 'error', text: 'No se pudo generar el enlace de pago. Intenta más tarde.' });
+            setIsDepositing(false);
         }
     };
 
@@ -184,7 +227,10 @@ export default function ProfilePage() {
                         </div>
 
                         {message && (
-                            <div className={`text-sm p-3 rounded-lg border flex items-center gap-2 ${message.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                            <div className={`text-sm p-3 rounded-lg border flex items-center gap-2 ${message.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                                : message.type === 'info' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                                    : 'bg-red-500/10 border-red-500/20 text-red-400'
+                                }`}>
                                 {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                                 {message.text}
                             </div>
@@ -198,6 +244,19 @@ export default function ProfilePage() {
                             <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl">
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Pronósticos</p>
                                 <p className="text-2xl font-black text-white">{predictions.length}</p>
+                            </div>
+                            <div className="px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-between gap-6">
+                                <div>
+                                    <p className="text-xs text-green-400 font-bold uppercase tracking-wider flex items-center gap-1"><Wallet size={12} /> Saldo Disponible</p>
+                                    <p className="text-2xl font-black text-white">${profile?.balance || 0}</p>
+                                </div>
+                                <button
+                                    onClick={handleDeposit}
+                                    disabled={isDepositing}
+                                    className="px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 text-sm whitespace-nowrap"
+                                >
+                                    {isDepositing ? 'Cargando...' : 'Cargar $5000'}
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -10,6 +10,7 @@ interface Profile {
     full_name: string;
     avatar_url: string;
     points: number;
+    balance?: number;
     role: 'user' | 'admin';
     email?: string;
 }
