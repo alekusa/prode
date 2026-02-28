@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { User, Trophy, Calendar, CheckCircle2, AlertCircle, Edit2, Save, X, Wallet } from 'lucide-react';
@@ -23,6 +23,33 @@ interface PredictionWithDetails {
     };
 }
 
+function PaymentStatusHandler({
+    setMessage,
+    refreshProfile
+}: {
+    setMessage: (msg: { type: 'success' | 'error' | 'info', text: string } | null) => void;
+    refreshProfile: () => void;
+}) {
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const paymentStatus = searchParams.get('payment');
+        if (paymentStatus === 'success') {
+            setMessage({ type: 'success', text: '¡Pago aprobado! Tu saldo se acreditará en breve.' });
+            window.history.replaceState(null, '', '/profile');
+            refreshProfile();
+        } else if (paymentStatus === 'failure') {
+            setMessage({ type: 'error', text: 'El pago fue rechazado o fallido. Intenta nuevamente.' });
+            window.history.replaceState(null, '', '/profile');
+        } else if (paymentStatus === 'pending') {
+            setMessage({ type: 'info', text: 'El pago está pendiente de aprobación.' });
+            window.history.replaceState(null, '', '/profile');
+        }
+    }, [searchParams, refreshProfile, setMessage]);
+
+    return null;
+}
+
 export default function ProfilePage() {
     const { user, profile, refreshProfile, loading: authLoading } = useAuth();
     const [fullName, setFullName] = useState('');
@@ -32,24 +59,7 @@ export default function ProfilePage() {
     const [loadingPredictions, setLoadingPredictions] = useState(true);
     const [isDepositing, setIsDepositing] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
-    const searchParams = useSearchParams();
 
-    useEffect(() => {
-        const paymentStatus = searchParams.get('payment');
-        if (paymentStatus === 'success') {
-            setMessage({ type: 'success', text: '¡Pago aprobado! Tu saldo se acreditará en breve.' });
-            // Clean URL
-            window.history.replaceState(null, '', '/profile');
-            // Refresh profile to get new balance
-            refreshProfile();
-        } else if (paymentStatus === 'failure') {
-            setMessage({ type: 'error', text: 'El pago fue rechazado o fallido. Intenta nuevamente.' });
-            window.history.replaceState(null, '', '/profile');
-        } else if (paymentStatus === 'pending') {
-            setMessage({ type: 'info', text: 'El pago está pendiente de aprobación.' });
-            window.history.replaceState(null, '', '/profile');
-        }
-    }, [searchParams, refreshProfile]);
     useEffect(() => {
         if (profile) {
             setFullName(profile.full_name || '');
@@ -173,6 +183,10 @@ export default function ProfilePage() {
 
     return (
         <div className="space-y-8 animate-fade-in pb-12">
+            <Suspense fallback={null}>
+                <PaymentStatusHandler setMessage={setMessage} refreshProfile={refreshProfile} />
+            </Suspense>
+
             {/* Profile Header */}
             <section className="relative glass-panel rounded-3xl p-8 border border-white/5 overflow-hidden">
                 <div className="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] bg-argentina-blue/10 blur-[80px] rounded-full" />
