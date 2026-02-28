@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database';
 import { useAuth } from '@/context/AuthContext';
-import { Clock, Lock, CheckCircle2 } from 'lucide-react';
+import { Clock, Lock, CheckCircle2, Minus } from 'lucide-react';
 import Link from 'next/link';
 import { TeamForm } from '@/components/matches/TeamForm';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -163,23 +163,45 @@ export function MatchCard({ match, userPrediction }: MatchCardProps) {
                             ) : (
                                 <>
                                     <div className="flex items-center gap-3">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={homeScore}
-                                            onChange={(e) => setHomeScore(e.target.value)}
-                                            className="w-12 h-12 text-center rounded-xl bg-navy-950 border border-white/10 font-mono text-2xl font-black text-white focus:border-argentina-blue focus:ring-2 focus:ring-argentina-blue/20 transition-all"
-                                            placeholder="0"
-                                        />
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setHomeScore(prev => prev === '' ? '0' : (parseInt(prev) + 1).toString())}
+                                                className="w-12 h-12 flex items-center justify-center rounded-xl bg-navy-950 border border-white/10 font-mono text-2xl font-black text-white hover:border-argentina-blue hover:bg-navy-900 transition-all focus:outline-none focus:ring-2 focus:ring-argentina-blue/20 select-none"
+                                            >
+                                                {homeScore === '' ? '-' : homeScore}
+                                            </button>
+                                            {homeScore !== '' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setHomeScore(prev => prev === '0' ? '' : (parseInt(prev) - 1).toString());
+                                                    }}
+                                                    className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-navy-800 border border-white/20 hover:bg-red-500 hover:border-red-500 text-white rounded-full shadow-lg transition-colors z-10"
+                                                >
+                                                    <Minus size={12} strokeWidth={3} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <span className="text-gray-600 font-black text-xl">-</span>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={awayScore}
-                                            onChange={(e) => setAwayScore(e.target.value)}
-                                            className="w-12 h-12 text-center rounded-xl bg-navy-950 border border-white/10 font-mono text-2xl font-black text-white focus:border-argentina-blue focus:ring-2 focus:ring-argentina-blue/20 transition-all"
-                                            placeholder="0"
-                                        />
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setAwayScore(prev => prev === '' ? '0' : (parseInt(prev) + 1).toString())}
+                                                className="w-12 h-12 flex items-center justify-center rounded-xl bg-navy-950 border border-white/10 font-mono text-2xl font-black text-white hover:border-argentina-blue hover:bg-navy-900 transition-all focus:outline-none focus:ring-2 focus:ring-argentina-blue/20 select-none"
+                                            >
+                                                {awayScore === '' ? '-' : awayScore}
+                                            </button>
+                                            {awayScore !== '' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setAwayScore(prev => prev === '0' ? '' : (parseInt(prev) - 1).toString());
+                                                    }}
+                                                    className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-navy-800 border border-white/20 hover:bg-red-500 hover:border-red-500 text-white rounded-full shadow-lg transition-colors z-10"
+                                                >
+                                                    <Minus size={12} strokeWidth={3} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <button
                                         onClick={handlePredictionSubmit}

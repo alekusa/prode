@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Database } from '@/types/database';
 import { useAuth } from '@/context/AuthContext';
-import { Clock, CheckCircle2 } from 'lucide-react';
+import { Clock, CheckCircle2, Minus } from 'lucide-react';
 import { TeamForm } from '@/components/matches/TeamForm';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useRouter } from 'next/navigation';
@@ -172,23 +172,45 @@ export function MatchCardLarge({ match, userPrediction }: MatchCardLargeProps) {
                             </div>
                         ) : (
                             <div className="flex items-center gap-4">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={homeScore}
-                                    onChange={(e) => setHomeScore(e.target.value)}
-                                    className="w-24 h-24 text-center rounded-2xl bg-navy-950 border-2 border-white/10 font-mono text-5xl font-black text-white focus:border-argentina-blue focus:ring-4 focus:ring-argentina-blue/10 transition-all outline-none placeholder:text-white/10"
-                                    placeholder="-"
-                                />
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setHomeScore(prev => prev === '' ? '0' : (parseInt(prev) + 1).toString())}
+                                        className="w-24 h-24 flex items-center justify-center rounded-2xl bg-navy-950 border-2 border-white/10 font-mono text-5xl font-black text-white hover:border-argentina-blue hover:bg-navy-900 transition-all focus:outline-none focus:ring-4 focus:ring-argentina-blue/10 select-none cursor-pointer"
+                                    >
+                                        {homeScore === '' ? '-' : homeScore}
+                                    </button>
+                                    {homeScore !== '' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setHomeScore(prev => prev === '0' ? '' : (parseInt(prev) - 1).toString());
+                                            }}
+                                            className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-navy-800 border-2 border-white/20 hover:bg-red-500 hover:border-red-500 text-white rounded-full shadow-xl transition-colors z-10 cursor-pointer"
+                                        >
+                                            <Minus size={16} strokeWidth={3} />
+                                        </button>
+                                    )}
+                                </div>
                                 <span className="text-2xl font-black text-gray-500">-</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={awayScore}
-                                    onChange={(e) => setAwayScore(e.target.value)}
-                                    className="w-24 h-24 text-center rounded-2xl bg-navy-950 border-2 border-white/10 font-mono text-5xl font-black text-white focus:border-argentina-blue focus:ring-4 focus:ring-argentina-blue/10 transition-all outline-none placeholder:text-white/10"
-                                    placeholder="-"
-                                />
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setAwayScore(prev => prev === '' ? '0' : (parseInt(prev) + 1).toString())}
+                                        className="w-24 h-24 flex items-center justify-center rounded-2xl bg-navy-950 border-2 border-white/10 font-mono text-5xl font-black text-white hover:border-argentina-blue hover:bg-navy-900 transition-all focus:outline-none focus:ring-4 focus:ring-argentina-blue/10 select-none cursor-pointer"
+                                    >
+                                        {awayScore === '' ? '-' : awayScore}
+                                    </button>
+                                    {awayScore !== '' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setAwayScore(prev => prev === '0' ? '' : (parseInt(prev) - 1).toString());
+                                            }}
+                                            className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-navy-800 border-2 border-white/20 hover:bg-red-500 hover:border-red-500 text-white rounded-full shadow-xl transition-colors z-10 cursor-pointer"
+                                        >
+                                            <Minus size={16} strokeWidth={3} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 
