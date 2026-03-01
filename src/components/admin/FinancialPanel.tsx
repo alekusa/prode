@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import { DollarSign, BarChart3, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 
 type RoundStat = {
@@ -9,6 +8,12 @@ type RoundStat = {
     total: number;
     manual: number;
     real: number;
+};
+
+type Transaction = {
+    round: number;
+    amount: number;
+    type: 'manual' | 'real';
 };
 
 export function FinancialPanel() {
@@ -23,18 +28,17 @@ export function FinancialPanel() {
     async function fetchFinancials() {
         setLoading(true);
         try {
-            const { data: txs, error } = await supabase
-                .from('transactions')
-                .select('*')
-                .eq('status', 'approved')
-                .order('round', { ascending: false });
+            const res = await fetch('/api/admin/financials');
+            const data = await res.json();
 
-            if (error) throw error;
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch');
+
+            const txs = data as Transaction[];
 
             const grouped: Record<number, RoundStat> = {};
             let tTotal = 0, tManual = 0, tReal = 0;
 
-            txs?.forEach(tx => {
+            txs.forEach(tx => {
                 const r = tx.round || 0;
                 if (!grouped[r]) {
                     grouped[r] = { round: r, total: 0, manual: 0, real: 0 };
