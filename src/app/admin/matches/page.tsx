@@ -294,6 +294,25 @@ export default function AdminMatchesPage() {
                         <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
                         {isSyncing ? 'Sincronizando...' : 'Sincronizar Calendar'}
                     </button>
+                    <button
+                        onClick={async () => {
+                            if (!confirm('¿Cerrar esta fecha y RESETEAR TODOS los saldos a $0?')) return;
+                            try {
+                                const res = await fetch('/api/admin/users', {
+                                    method: 'POST',
+                                    body: JSON.stringify({ action: 'reset_all_balances' })
+                                });
+                                if (!res.ok) throw new Error('Error al resetear saldos');
+                                alert('Todos los saldos han sido reseteados a $0.');
+                            } catch (error: any) {
+                                alert('Error: ' + error.message);
+                            }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20 font-bold hover:bg-orange-500/20 transition-all shadow-lg text-sm"
+                    >
+                        <RefreshCw size={18} />
+                        Cerrar Fecha (Reset)
+                    </button>
                     <ScoringButton />
                     <button
                         onClick={handleCreate}

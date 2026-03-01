@@ -6,6 +6,7 @@ import { Users, Trophy, CheckCircle, UserCog } from "lucide-react";
 import { ScoringButton } from "@/components/admin/ScoringButton";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { WildcardBetting } from "@/components/admin/WildcardBetting";
+import { FinancialPanel } from "@/components/admin/FinancialPanel";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -79,6 +80,8 @@ export default function AdminDashboard() {
                 <AdminSettings />
                 <WildcardBetting />
             </div>
+
+            <FinancialPanel />
         </div>
     );
 }

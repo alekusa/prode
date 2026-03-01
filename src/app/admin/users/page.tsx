@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Trash2, Loader2, Search, KeyRound, ShieldAlert, UserCog, Edit, LogIn, Dices, Save, User as UserIcon } from 'lucide-react';
+import { Trash2, Loader2, Search, KeyRound, ShieldAlert, UserCog, Edit, LogIn, Dices, Save, User as UserIcon, Wallet, RefreshCw } from 'lucide-react';
 import { PASSWORD_DEFAULT } from '@/lib/constants';
 
 type User = {
@@ -12,6 +12,7 @@ type User = {
     created_at: string;
     last_sign_in_at: string | null;
     avatar_url?: string;
+    balance: number;
 };
 
 export default function AdminUsersPage() {
@@ -182,6 +183,42 @@ export default function AdminUsersPage() {
         }
     }
 
+    async function handleAddBalance(userId: string) {
+        setActionLoading(userId);
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'add_balance', userId })
+            });
+            if (!res.ok) throw new Error('Error adding balance');
+            alert('Saldo cargado correctamente');
+            fetchUsers();
+        } catch (error: any) {
+            alert('Error: ' + error.message);
+        } finally {
+            setActionLoading(null);
+        }
+    }
+
+    async function handleResetAllBalances() {
+        if (!confirm('¿EstÁS SEGURO? Se pondrán en $0 los saldos de TODOS los usuarios (excepto administradores).')) return;
+
+        setActionLoading('reset_balances');
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'reset_all_balances' })
+            });
+            if (!res.ok) throw new Error('Error resetting balances');
+            alert('Saldos reseteados correctamente');
+            fetchUsers();
+        } catch (error: any) {
+            alert('Error: ' + error.message);
+        } finally {
+            setActionLoading(null);
+        }
+    }
+
     return (
         <div className="space-y-8 animate-fade-in pb-20">
             {/* Header */}
@@ -196,15 +233,25 @@ export default function AdminUsersPage() {
                         Visualizá, editá y gestioná el acceso de todos los usuarios registrados en la plataforma.
                     </p>
                 </div>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por email, usuario..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-argentina-blue w-full md:w-64"
-                    />
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={handleResetAllBalances}
+                        disabled={actionLoading === 'reset_balances'}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20 font-bold hover:bg-orange-500/20 transition-all shadow-lg text-sm disabled:opacity-50"
+                    >
+                        {actionLoading === 'reset_balances' ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                        Resetear Saldos
+                    </button>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por email, usuario..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-argentina-blue w-full md:w-64"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -220,6 +267,7 @@ export default function AdminUsersPage() {
                                 <tr>
                                     <th className="px-6 py-4">Usuario</th>
                                     <th className="px-6 py-4">Email</th>
+                                    <th className="px-6 py-4">Saldo</th>
                                     <th className="px-6 py-4 hidden sm:table-cell">Registrado</th>
                                     <th className="px-6 py-4 hidden md:table-cell">Último Acceso</th>
                                     <th className="px-6 py-4 text-right">Acciones</th>
@@ -251,6 +299,12 @@ export default function AdminUsersPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-300 font-mono">{user.email}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <Wallet size={14} className="text-green-500" />
+                                                <span className="font-bold text-white">${user.balance || 0}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 text-xs text-gray-500 hidden sm:table-cell">
                                             {new Date(user.created_at).toLocaleDateString()}
                                         </td>
@@ -259,6 +313,15 @@ export default function AdminUsersPage() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleAddBalance(user.id)}
+                                                    disabled={actionLoading === user.id}
+                                                    className="px-3 py-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-navy-950 transition-colors border border-green-500/20 text-xs font-bold flex items-center gap-1"
+                                                    title="Cargar $5000"
+                                                >
+                                                    {actionLoading === user.id ? <Loader2 size={14} className="animate-spin" /> : <Wallet size={14} />}
+                                                    Cargar $5000
+                                                </button>
                                                 <button
                                                     onClick={() => openEditModal(user)}
                                                     className="p-2 rounded-lg bg-argentina-blue/10 text-argentina-blue hover:bg-argentina-blue hover:text-navy-950 transition-colors border border-argentina-blue/20"

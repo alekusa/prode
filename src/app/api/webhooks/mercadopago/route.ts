@@ -64,32 +64,38 @@ export async function POST(req: Request) {
                     return new NextResponse('Already processed', { status: 200 });
                 }
 
+                // 0. Get current round
+                const { data: nextMatch } = await supabaseAdmin
+                    .from('matches')
+                    .select('round')
+                    .gte('start_time', new Date().toISOString())
+                    .order('start_time', { ascending: true })
+                    .limit(1)
+                    .single();
+
+                let currentRound = nextMatch?.round;
+
+                if (!currentRound) {
+                    const { data: lastMatch } = await supabaseAdmin
+                        .from('matches')
+                        .select('round')
+                        .order('round', { ascending: false })
+                        .limit(1)
+                        .single();
+                    currentRound = lastMatch?.round || 1;
+                }
+
                 // 1. Mark transaction as approved
-                // If we created a pending tx at checkout step with preference_id, we can update it.
-                // Or just upsert based on payment id.
                 await supabaseAdmin.from('transactions').upsert({
                     user_id: userId,
                     mp_payment_id: paymentId.toString(),
                     amount: amount,
-                    status: 'approved'
+                    status: 'approved',
+                    type: 'real',
+                    round: currentRound
                 }, { onConflict: 'mp_payment_id' });
 
-                // 2. Increment user balance safely using RPC or direct update
-                // For direct update (might have race conditions if multiple payments hit at exact same ms, 
-                // but fine for simple cases. A Supabase RPC `increment_balance` is safer. We'll read/write for now).
-                const { data: profile } = await supabaseAdmin
-                    .from('profiles')
-                    .select('balance')
-                    .eq('id', userId)
-                    .single();
-
-                const currentBalance = profile?.balance || 0;
-
-                await supabaseAdmin
-                    .from('profiles')
-                    .update({ balance: Number(currentBalance) + Number(amount) })
-                    .eq('id', userId);
-
+                // 2. Increment user balance (Handled by transactions table now)
                 console.log(`Successfully credited $${amount} to user ${userId}`);
             }
         }

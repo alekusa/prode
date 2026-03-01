@@ -10,7 +10,7 @@ interface Profile {
     full_name: string;
     avatar_url: string;
     points: number;
-    balance?: number;
+    balance: number;
     role: 'user' | 'admin';
     email?: string;
 }
@@ -42,14 +42,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (error) {
                 if (error.code === 'PGRST116') {
-                    // No profile found, might be a new user
                     setProfile(null);
                 } else {
                     console.error('Error fetching profile details:', error);
                     setProfile(null);
                 }
             } else {
-                setProfile(data);
+                // Fetch transactions to calculate balance
+                const { data: txs } = await supabase
+                    .from('transactions')
+                    .select('amount')
+                    .eq('user_id', userId)
+                    .eq('status', 'approved');
+
+                const balance = (txs || []).reduce((sum, t) => sum + Number(t.amount), 0);
+                setProfile({ ...data, balance });
             }
         } catch (error: any) {
             // Silence AbortErrors as they are expected during navigation/re-renders
